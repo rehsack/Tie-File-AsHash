@@ -6,12 +6,7 @@ use vars qw($VERSION);
 use Carp;
 use Tie::File;
 
-$VERSION = "0.02";
-
-my @FILE;			# Tie::File array
-my $DELIM;			# delimiter
-my $FILLER;			# something to put in place of a delimiter
-my $NEXTKEY_INDEX;	# to keep track of what index a keys/each is on - see sub FIRSTKEY and sub NEXTKEY
+$VERSION = "0.03";
 
 sub TIEHASH {
 
@@ -20,20 +15,20 @@ sub TIEHASH {
 	my ($obj, $filename, %opts) = @_;
 
 	# set delimiter and croak if none was supplied
-	$DELIM = delete $opts{delim} or croak usage();
+	my $split = delete $opts{split} or croak usage();
 
-	# set filler, an optional argument
-	$FILLER = delete $opts{filler};
+	# set join, an optional argument
+	my $join = delete $opts{join};
 
-	# if delim's value is a regex and filler isn't specified, croak
-	croak "Tie::File::AsHash error: no 'filler' option specified and delimiter is a regular expression\n", usage()
-		if ref($DELIM) eq "Regexp" and not defined $FILLER;
+	# if split's value is a regex and join isn't specified, croak
+	croak "Tie::File::AsHash error: no 'join' option specified and 'split' option is a regular expression\n", usage()
+		if ref($split) eq "Regexp" and not defined $join;
 	
 	# the rest of the options can feed right into Tie::File
 	# Tie::File can worry about checking the arguments for validity, etc.
-	tie @FILE, 'Tie::File', $filename, %opts or return; 
+	tie my @file, 'Tie::File', $filename, %opts or return; 
 
-	return bless { file => \@FILE }, $obj;
+	return bless { split => $split, join => $join, file => \@file }, $obj;
 
 }
 
@@ -42,9 +37,9 @@ sub FETCH {
 	my ($self, $key) = @_;
 
 	# find the key and get corresponding value
-	for (@FILE) {
+	for (@{$self->{file}}) {
 
-		return $1 if /^$key$DELIM(.*)/;
+		return $1 if /^\Q$key\E$self->{split}(.*)/s;
 
 	}
 
@@ -55,12 +50,12 @@ sub STORE {
 	my ($self, $key, $val) = @_;
 
 	# look for $key in the file and replace value if $key is found
-	for (@FILE) {
+	for (@{$self->{file}}) {
 
 		# found the key? good. replace the entire line with the correct key, delim, and value
-		if (/^$key$DELIM/) {
+		if (/^\Q$key\E$self->{split}/s) {
 
-			$_ = $key . (defined $FILLER ? $FILLER : $DELIM) . $val;
+			$_ = $key . (exists $self->{join} ? $self->{join} : $self->{split}) . $val;
 			return;
 
 		}
@@ -68,7 +63,7 @@ sub STORE {
 	}
 
 	# if key doesn't exist in the file, append to end of file
-	push @FILE, $key. (defined $FILLER ? $FILLER : $DELIM) . $val;
+	push @{$self->{file}}, $key . (defined $self->{join} ? $self->{join} : $self->{split}) . $val;
 
 }
 
@@ -81,11 +76,11 @@ sub DELETE {
 	# finally, return the value, which might not contain anything
 	# perl's builtin delete() returns the deleted value, so emulate the behavior
 
-	for my $i (0 .. $#FILE) {
+	for my $i (0 .. $#{ $self->{file} } ) {
 
-		if ($FILE[$i] =~ /^$key$DELIM(.*)/) {
+		if ($self->{file}->[$i] =~ /^\Q$key\E$self->{split}(.*)/s) {
 
-			splice @FILE, $i, 1;  # remove entry from file
+			splice @{$self->{file}}, $i, 1;  # remove entry from file
 			return $1;
 
 		}
@@ -94,15 +89,15 @@ sub DELETE {
 
 }
 
-sub CLEAR { @FILE = () }
+sub CLEAR { @{ $_[0]->{file} } = () }
 
 sub EXISTS {
 
 	my ($self, $key) = @_;
 
-	for (@FILE) {
+	for (@{$self->{file}}) {
 
-		return 1 if /^$key$DELIM/;
+		return 1 if /^\Q$key\E$self->{split}/s;
 
 	}
 
@@ -110,13 +105,15 @@ sub EXISTS {
 
 sub FIRSTKEY {
 
+	my ($self) = @_;
+	
 	# deal with empty files
-	return unless exists $FILE[0];
+	return unless exists $self->{file}->[0];
 
-	my ($val) = $FILE[0] =~ /^(.+?)$DELIM/;
+	my ($val) = $self->{file}->[0] =~ /^(.*?)$self->{split}/s;
 
 	# for NEXTKEY
-	$NEXTKEY_INDEX = 1;
+	$self->{index} = 1;
 
 	return $val;
 
@@ -124,17 +121,19 @@ sub FIRSTKEY {
 
 sub NEXTKEY {
 
+	my ($self) = @_;
+	
 	# deal with one-line files
-	if ($NEXTKEY_INDEX == 1) {
+	if ($self->{index} == 1) {
 
-		return unless exists $FILE[1];
+		return unless exists $self->{file}->[1];
 
 	}
 
 	# and the end of the file
-	return if $NEXTKEY_INDEX >= @FILE;
+	return if $self->{index} >= @{$self->{file}};
 
-	my ($val) = $FILE[$NEXTKEY_INDEX++] =~ /^(.+?)$DELIM/;
+	my ($val) = $self->{file}->[ $self->{index} ] =~ /^(.*?)$self->{split}/s;
 
 	return $val;
 
@@ -142,14 +141,18 @@ sub NEXTKEY {
 
 sub SCALAR {
 
+	my ($self) = @_;
+	
 	# can't think of any other good use for scalar %hash besides this
-	return scalar @FILE;
+	return scalar @{$self->{file}};
 
 }
 
 sub UNTIE {
 
-	untie @FILE;
+	my ($self) = @_;
+	
+	untie @{$self->{file}};
 
 }
 
@@ -157,7 +160,7 @@ sub DESTROY { UNTIE(@_) }
 
 sub usage {
 
-	return "usage: tie %hash, 'Tie::File::AsHash', 'filename', delim => ':' [, filler => '#', 'Tie::File option' => value, ... ]\n";
+	return "usage: tie %hash, 'Tie::File::AsHash', 'filename', split => ':' [, join => '#', 'Tie::File option' => value, ... ]\n";
 
 }
 
@@ -167,12 +170,11 @@ sub usage {
 Tie::File::AsHash - Like Tie::File but access lines using a hash instead of an
 array
 
-
 =head1 SYNOPSIS
 
  use Tie::Hash::AsHash;
 
- tie my %hash, 'Tie::File::AsHash', 'filename', delim => ':'
+ tie my %hash, 'Tie::File::AsHash', 'filename', split => ':'
  	or die "Problem tying %hash: $!";
 
  print $hash{foo};                  # access hash value via key name
@@ -194,7 +196,6 @@ file:
  key:val
  baz:whatever
 
-
 =head1 DESCRIPTION
 
 C<Tie::File::AsHash> uses C<Tie::File> and perl code so files can be tied to
@@ -206,7 +207,7 @@ The module was initially written for managing htpasswd-format password files.
 =head1 USAGE
 
  use Tie::File::AsHash;
- tie %hash, 'Tie::File::AsHash', 'filename', delim => ':' [, Tie::File options ]
+ tie %hash, 'Tie::File::AsHash', 'filename', split => ':'
  	or die "Problem tying %hash: $!";
 
  (use %hash like a regular ol' hash)
@@ -219,19 +220,18 @@ New key/value pairs are appended to the end of the file, C<delete> removes lines
 from the file, C<keys> and C<each> work as expected, and so on.
 
 C<Tie::File::AsHash> will not die or exit if there is a problem tying a
-file, so make sure to check the return value and check $! as the examples do.
-	
+file, so make sure to check the return value and check C<$!> as the examples do.
 
 =head2 OPTIONS
 
-The only argument C<Tie::File::AsHash> requires is the "delim" option, besides
-a filename.  The delim option's value is the delimiter that exists in the file
+The only argument C<Tie::File::AsHash> requires is the "split" option, besides
+a filename.  The split option's value is the delimiter that exists in the file
 between the key and value portions of the line.  It may be a regular
-expression, and if so, the "filler" option can be used to tell
-C<Tie::File::AsHash> what to use as a delimiter when assigning values to the
-hash.
+expression, and if so, the "join" option must be used to tell
+C<Tie::File::AsHash> what to stick between the key and value when writing
+to the file.  Otherwise, the module dies with an error message.
 
- tie %hash, 'Tie::File::AsHash', 'filename',  delim => qr(\s+), filler => " "
+ tie %hash, 'Tie::File::AsHash', 'filename',  split => qr(\s+), join => " "
  	or die "Problem tying %hash: $!";
 
 Obviously no one wants lines like "key(?-xism:\s+)val" in their files. 
@@ -251,9 +251,9 @@ keys, the first key in the file, starting at the top, is used. However, when
 C<keys>, C<values>, or C<each> is used on the hash, every key/value combination
 is returned, including duplicates, triplicates, etc.
 
-Keys can't contain the delimiter character.  Look at the perl code that
+Keys can't contain the split character.  Look at the perl code that
 C<Tie::File::AsHash> is comprised of to see why (look at the regexes).  Using
-a regex as the delimiter may be one way around this problem.
+a regex for the split value may be one way around this issue.
 
 C<Tie::File::AsHash> hasn't been optimized much.  Maybe it doesn't need to be.
 Optimization could add overhead.  Maybe there can be options to turn on and off
@@ -261,7 +261,9 @@ various types of optimization?
 
 =head1 EXAMPLES
 
-C<Changepass.pl> changes password file entries when the lines are of
+=head2 changepass.pl
+
+C<changepass.pl> changes password file entries when the lines are of
 "user:encryptedpass" format.  It can also add users.
 
  #!/usr/bin/perl -w
@@ -272,27 +274,30 @@ C<Changepass.pl> changes password file entries when the lines are of
  die "Usage: $0 user password" unless @ARGV == 2;
  my ($user, $newpass) = @ARGV;
  
- tie my %users, 'Tie::File::AsHash', '/pwdb/users.txt', delim => ':'
+ tie my %users, 'Tie::File::AsHash', '/pwdb/users.txt', split => ':'
      or die "Problem tying %hash: $!";
 
  # username isn't in the password file? see if the admin wants it added
  unless (exists $users{$user}) {
 	 
-	 warn "User '$user' not found in db.  Add as a new user? (y/n)\n";
+	 print "User '$user' not found in db.  Add as a new user? (y/n)\n";
 	 chomp(my $y_or_n = <STDIN>);
 	 set_pw($user, $newpass) if $y_or_n =~ /^[yY]/;
 
  } else {
 
 	 set_pw($user, $newpass);
+	 print "Done.\n";
 
  }
 	 
  sub set_pw { $users{$_[0]} = crypt($_[1], "AA") }
 
+=head2 Using the join option
+ 
 Here's code that would allow the delimiter to be ':' or '#' but prefers '#':
 
- tie my %hash, 'Tie::File::AsHash', 'filename', delim => qr/[:#]/, filler => "#" or die $!;
+ tie my %hash, 'Tie::File::AsHash', 'filename', split => qr/[:#]/, join => "#" or die $!;
 
 Say you want to be sure no ':' delimiters existed in the file:
 
@@ -302,7 +307,6 @@ Say you want to be sure no ':' delimiters existed in the file:
 
  }
 
- 
 =head1 AUTHOR
 
 Chris Angell <chris@chrisangell.com>
@@ -310,7 +314,6 @@ Chris Angell <chris@chrisangell.com>
 Feel free to email me with suggestions, fixes, etc.
 
 Thanks to Mark Jason Dominus for authoring the superb Tie::File module.
-
 
 =head1 COPYRIGHT
 
