@@ -1,4 +1,4 @@
-Tie-File-AsHash version 0.02
+Tie-File-AsHash version 0.04
 ============================
 
 Tie::File::AsHash - Like Tie::File but access lines using a hash instead of an
@@ -19,7 +19,7 @@ DEPENDENCIES
 
 This module requires these other modules and libraries:
 
-	Tie::File
+   Tie::File
 
 AUTHOR
 

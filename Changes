@@ -16,4 +16,7 @@ Revision history for Perl module Tie::File::AsHash
 	- regexes use the s modifier now, to allow for
 	  newlines in strings
 	- other minor changes to documentation and code
-	- module is still beta 
+	- module is still beta
+
+0.04  Wed Feb  2 15:33:40 2005
+	- NEXTKEY wasn't incrementing the index - problem fixed

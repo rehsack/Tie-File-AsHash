@@ -6,7 +6,7 @@ use vars qw($VERSION);
 use Carp;
 use Tie::File;
 
-$VERSION = "0.03";
+$VERSION = "0.04";
 
 sub TIEHASH {
 
@@ -112,8 +112,8 @@ sub FIRSTKEY {
 
 	my ($val) = $self->{file}->[0] =~ /^(.*?)$self->{split}/s;
 
-	# for NEXTKEY
-	$self->{index} = 1;
+	# reset index for NEXTKEY
+	$self->{index} = 0;
 
 	return $val;
 
@@ -122,6 +122,9 @@ sub FIRSTKEY {
 sub NEXTKEY {
 
 	my ($self) = @_;
+	
+	# keep track of what line of the file we are on
+	$self->{index}++;
 	
 	# deal with one-line files
 	if ($self->{index} == 1) {
@@ -299,7 +302,7 @@ Here's code that would allow the delimiter to be ':' or '#' but prefers '#':
 
  tie my %hash, 'Tie::File::AsHash', 'filename', split => qr/[:#]/, join => "#" or die $!;
 
-Say you want to be sure no ':' delimiters existed in the file:
+Say you want to be sure no ':' delimiters exist in the file:
 
  while (my ($key, $val) = each %hash) {
 
