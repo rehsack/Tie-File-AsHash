@@ -19,4 +19,8 @@ Revision history for Perl module Tie::File::AsHash
 	- module is still beta
 
 0.04  Wed Feb  2 15:33:40 2005
-	- NEXTKEY wasn't incrementing the index - problem fixed
+	- NEXTKEY wasn't incrementing the index
+
+0.05  Wed Feb  2 16:40:20 2005
+	- Rather major typo in the module's POD
+
