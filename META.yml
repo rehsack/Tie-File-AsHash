@@ -1,0 +1,11 @@
+# http://module-build.sourceforge.net/META-spec.html
+name:         Tie-File-AsHash
+version:      0.06
+version_from: lib/Tie/File/AsHash.pm
+installdirs:  site
+requires:
+    Tie::File:                     
+
+distribution_type: module
+generated_by: ExtUtils::MakeMaker version 6.17
+license: perl

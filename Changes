@@ -1,26 +1,31 @@
 Revision history for Perl module Tie::File::AsHash
 
 0.01  Mon Jan  3 11:42:11 2005
-	- original version, never released
+	- Original version, never released
 
 0.02  Tue Jan  4 10:05:43 2005
-	- code cleaned up, numerous modifications
-	- made some basic tests
-	- initial release on CPAN
+	- Code cleaned up, numerous modifications
+	- Made some basic tests
+	- Initial release on CPAN
 
 0.03  Tue Jan  4 16:26:16 2005
-	- no more global (lexical to file) variables - uses
+	- No more global (lexical to file) variables - uses
 	  $self for parameters
-	- renamed parameters (split and join)
-	- used \Q and \E in regexes where needed
-	- regexes use the s modifier now, to allow for
+	- Renamed parameters (split and join)
+	- Used \Q and \E in regexes where needed
+	- Regexes use the s modifier now, to allow for
 	  newlines in strings
-	- other minor changes to documentation and code
-	- module is still beta
+	- Other minor changes to documentation and code
+	- Module is still beta
 
 0.04  Wed Feb  2 15:33:40 2005
 	- NEXTKEY wasn't incrementing the index
 
 0.05  Wed Feb  2 16:40:20 2005
 	- Rather major typo in the module's POD
+	- More tests
 
+0.06  Wed Feb  2 22:10:23 2005
+	- Added META.yml to package
+	- More tests
+	

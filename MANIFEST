@@ -1,12 +1,16 @@
-Changes
+Changes						Changes in the module throught time
 lib/Tie/File/AsHash.pm		The module
 Makefile.PL					Makefile
 MANIFEST					This list of files
 README						README document containing module information
-t/00_version.t
-t/01_fetch.t
-t/02_store.t
-t/03_delete.t
-t/04_exists.t
-t/05_scalar.t
-t/testfile					Used in the testing process
+t/00_version.t				make sure test version is for this module
+t/01_fetch.t				get data from hash
+t/02_store.t				put data in hash
+t/03_delete.t				delete()
+t/04_exists.t				exists()
+t/05_scalar.t				tests how hash behaves in scalar context
+t/06_keys.t					keys()
+t/07_values.t				values()
+t/08_each.t					each()
+t/testfile					used in the testing process
+META.yml					Module meta-data
