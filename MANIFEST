@@ -1,0 +1,12 @@
+Changes
+lib/Tie/File/AsHash.pm
+Makefile.PL
+MANIFEST			This list of files
+README
+t/00_version.t
+t/01_fetch.t
+t/02_store.t
+t/03_delete.t
+t/04_exists.t
+t/05_scalar.t
+t/testfile
