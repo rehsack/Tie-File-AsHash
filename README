@@ -1,4 +1,4 @@
-Tie-File-AsHash version 0.06
+Tie-File-AsHash version 0.07
 ============================
 
 Tie::File::AsHash - Like Tie::File but access lines using a hash instead of an

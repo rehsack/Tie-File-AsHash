@@ -6,7 +6,7 @@ use vars qw($VERSION);
 use Carp;
 use Tie::File;
 
-$VERSION = "0.06";
+$VERSION = "0.07";
 
 sub TIEHASH {
 
@@ -55,7 +55,9 @@ sub STORE {
 		# found the key? good. replace the entire line with the correct key, delim, and value
 		if (/^\Q$key\E$self->{split}/s) {
 
-			$_ = $key . (exists $self->{join} ? $self->{join} : $self->{split}) . $val;
+			# Marco Poleggi <marco.poleggi@cern.ch> supplied a patch that changed exists
+			# to defined in the next line of code.  Thanks Macro!
+			$_ = $key . (defined $self->{join} ? $self->{join} : $self->{split}) . $val;
 			return;
 
 		}

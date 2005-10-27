@@ -29,3 +29,6 @@ Revision history for Perl module Tie::File::AsHash
 	- Added META.yml to package
 	- More tests
 	
+0.07  Thu Oct 27 09:58:32 2005
+	- Fixed small problem in sub STORE.  Thanks
+	  Marco Poleggi for the patch!
