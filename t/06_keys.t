@@ -6,7 +6,7 @@ my %hash;
 
 my @keys = qw/first foo one two bar last/;
 
-ok((tie %hash, "Tie::File::AsHash", "t/testfile", split => ":"), "tie");
+ok((tie %hash, "Tie::File::AsHash", "t/testfile", split => ":", recsep => "\n"), "tie");
 
 my @keys_from_testfile = keys %hash;
 

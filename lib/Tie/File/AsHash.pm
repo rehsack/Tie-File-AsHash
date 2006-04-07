@@ -6,7 +6,7 @@ use vars qw($VERSION);
 use Carp;
 use Tie::File;
 
-$VERSION = "0.07";
+$VERSION = "0.08";
 
 sub TIEHASH {
 

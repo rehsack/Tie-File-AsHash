@@ -6,7 +6,7 @@ my %hash;
 
 my @vals = qw/line bar uno dos baz line/;
 
-ok((tie %hash, "Tie::File::AsHash", "t/testfile", split => ":"), "tie");
+ok((tie %hash, "Tie::File::AsHash", "t/testfile", split => ":", recsep => "\n"), "tie");
 
 my @vals_from_testfile = values %hash;
 
