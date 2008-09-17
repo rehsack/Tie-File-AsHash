@@ -1,4 +1,4 @@
-Tie-File-AsHash version 0.08
+Tie-File-AsHash version 0.09
 ============================
 
 Tie::File::AsHash - Like Tie::File but access lines using a hash instead of an
@@ -20,14 +20,16 @@ DEPENDENCIES
 This module requires these other modules and libraries:
 
    Tie::File
+   Tie::Array::AsHash
 
 AUTHOR
 
-Chris Angell <chris@chrisangell.com>
+Chris Angell <chris@chrisangell.com>, Jens Rehsack <rehsack@web.de>
 
 COPYRIGHT AND LICENCE
 
 Copyright (C) 2005 by Chris Angell
+Copyright (C) 2008 by Jens Rehsack
 
 This library is free software; you can redistribute it and/or modify
 it under the same terms as Perl itself, including any version of Perl 5.

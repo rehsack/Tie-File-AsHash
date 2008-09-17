@@ -35,3 +35,7 @@ Revision history for Perl module Tie::File::AsHash
 
 0.08  Mon Nov 21 19:41:00 2005
 	- Broken test cases fixed. Test failed on older versions of Perl (< 5.8.3) and Windows
+
+0.09  Wed May 14 18:10:00 2008
+    - Functionality to work on array splitted to Tie::Array::AsHash
+    - Derive from Tie::Array::AsHash

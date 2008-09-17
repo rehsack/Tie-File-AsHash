@@ -1,174 +1,63 @@
 package Tie::File::AsHash;
 
 use strict;
+
 # use warnings;
 use vars qw($VERSION);
 use Carp;
 use Tie::File;
+use base qw(Tie::Array::AsHash);
 
-$VERSION = "0.08";
+$VERSION = "0.09";
 
-sub TIEHASH {
+sub TIEHASH
+{
+    croak( usage() ) if ( scalar(@_) % 2 );
 
-	croak usage() if @_ % 2;
+    my ( $obj, $filename, %opts ) = @_;
 
-	my ($obj, $filename, %opts) = @_;
+    # set delimiter and croak if none was supplied
+    my $split = delete( $opts{split} ) or croak( usage() );
 
-	# set delimiter and croak if none was supplied
-	my $split = delete $opts{split} or croak usage();
+    # set join, an optional argument
+    my $join = delete( $opts{join} );
 
-	# set join, an optional argument
-	my $join = delete $opts{join};
+    # if split's value is a regex and join isn't specified, croak
+    croak( "Tie::File::AsHash error: no 'join' option specified and 'split' option is a regular expression\n", usage() )
+      if ( ref($split) eq 'Regexp' and not defined($join) );
 
-	# if split's value is a regex and join isn't specified, croak
-	croak "Tie::File::AsHash error: no 'join' option specified and 'split' option is a regular expression\n", usage()
-		if ref($split) eq "Regexp" and not defined $join;
-	
-	# the rest of the options can feed right into Tie::File
-	# Tie::File can worry about checking the arguments for validity, etc.
-	tie my @file, 'Tie::File', $filename, %opts or return; 
+    # the rest of the options can feed right into Tie::File
+    # Tie::File can worry about checking the arguments for validity, etc.
+    my $tiefile = tie my @file, 'Tie::File', $filename, %opts or return;
 
-	return bless { split => $split, join => $join, file => \@file }, $obj;
+    $obj = $obj->SUPER::TIEHASH(
+                                 array => \@file,
+                                 split => $split,
+                                 join  => $join,
+                               );
 
+    $obj->{file} = $tiefile;
+
+    return $obj;
 }
 
-sub FETCH {
+sub UNTIE
+{
+    my ($self) = @_;
 
-	my ($self, $key) = @_;
+    $self->{file} = undef;
+    untie @{ $self->{array} };
 
-	# find the key and get corresponding value
-	for (@{$self->{file}}) {
-
-		return $1 if /^\Q$key\E$self->{split}(.*)/s;
-
-	}
-
-}  
-
-sub STORE {
-
-	my ($self, $key, $val) = @_;
-
-	# look for $key in the file and replace value if $key is found
-	for (@{$self->{file}}) {
-
-		# found the key? good. replace the entire line with the correct key, delim, and value
-		if (/^\Q$key\E$self->{split}/s) {
-
-			# Marco Poleggi <marco.poleggi@cern.ch> supplied a patch that changed exists
-			# to defined in the next line of code.  Thanks Macro!
-			$_ = $key . (defined $self->{join} ? $self->{join} : $self->{split}) . $val;
-			return;
-
-		}
-
-	}
-
-	# if key doesn't exist in the file, append to end of file
-	push @{$self->{file}}, $key . (defined $self->{join} ? $self->{join} : $self->{split}) . $val;
-
-}
-
-sub DELETE {
-
-	my ($self, $key) = @_;
-
-	# first, look for the key in the file
-	# next, delete the line in the file
-	# finally, return the value, which might not contain anything
-	# perl's builtin delete() returns the deleted value, so emulate the behavior
-
-	for my $i (0 .. $#{ $self->{file} } ) {
-
-		if ($self->{file}->[$i] =~ /^\Q$key\E$self->{split}(.*)/s) {
-
-			splice @{$self->{file}}, $i, 1;  # remove entry from file
-			return $1;
-
-		}
-
-	}
-
-}
-
-sub CLEAR { @{ $_[0]->{file} } = () }
-
-sub EXISTS {
-
-	my ($self, $key) = @_;
-
-	for (@{$self->{file}}) {
-
-		return 1 if /^\Q$key\E$self->{split}/s;
-
-	}
-
-}  
-
-sub FIRSTKEY {
-
-	my ($self) = @_;
-	
-	# deal with empty files
-	return unless exists $self->{file}->[0];
-
-	my ($val) = $self->{file}->[0] =~ /^(.*?)$self->{split}/s;
-
-	# reset index for NEXTKEY
-	$self->{index} = 0;
-
-	return $val;
-
-}  
-
-sub NEXTKEY {
-
-	my ($self) = @_;
-	
-	# keep track of what line of the file we are on
-	$self->{index}++;
-	
-	# deal with one-line files
-	if ($self->{index} == 1) {
-
-		return unless exists $self->{file}->[1];
-
-	}
-
-	# and the end of the file
-	return if $self->{index} >= @{$self->{file}};
-
-	my ($val) = $self->{file}->[ $self->{index} ] =~ /^(.*?)$self->{split}/s;
-
-	return $val;
-
-}
-
-sub SCALAR {
-
-	my ($self) = @_;
-	
-	# can't think of any other good use for scalar %hash besides this
-	return scalar @{$self->{file}};
-
-}
-
-sub UNTIE {
-
-	my ($self) = @_;
-	
-	untie @{$self->{file}};
-
+    $self->SUPER::UNTIE();
 }
 
 sub DESTROY { UNTIE(@_) }
 
-sub usage {
-
-	return "usage: tie %hash, 'Tie::File::AsHash', 'filename', split => ':' [, join => '#', 'Tie::File option' => value, ... ]\n";
-
+sub usage
+{
+    return "usage: tie %hash, 'Tie::File::AsHash', 'filename', "
+      . "split => ':' [, join => '#', 'Tie::File option' => value, ... ]\n";
 }
-
 
 =head1 NAME
 
@@ -203,11 +92,12 @@ file:
 
 =head1 DESCRIPTION
 
-C<Tie::File::AsHash> uses C<Tie::File> and perl code so files can be tied to
-hashes.  C<Tie::File> does all the hard work while C<Tie::File::AsHash> works
-a little magic of its own.
+C<Tie::File::AsHash> uses C<Tie::File> and perl code from C<Tie::Array::AsHash>
+so files can be tied to hashes. C<Tie::File> does all the hard work while
+C<Tie::File::AsHash> works a little magic of its own.
 
-The module was initially written for managing htpasswd-format password files.
+The module was initially written by Chris Angell <chris@chrisangell.com> for
+managing htpasswd-format password files.
 
 =head1 USAGE
 
@@ -239,7 +129,7 @@ to the file.  Otherwise, the module dies with an error message.
  tie %hash, 'Tie::File::AsHash', 'filename',  split => qr(\s+), join => " "
  	or die "Problem tying %hash: $!";
 
-Obviously no one wants lines like "key(?-xism:\s+)val" in their files. 
+Obviously no one wants lines like "key(?-xism:\s+)val" in their files.
 
 All other options are passed directly to C<Tie::File>, so read its
 documentation for more information.
@@ -278,13 +168,13 @@ C<changepass.pl> changes password file entries when the lines are of
 
  die "Usage: $0 user password" unless @ARGV == 2;
  my ($user, $newpass) = @ARGV;
- 
+
  tie my %users, 'Tie::File::AsHash', '/pwdb/users.txt', split => ':'
      or die "Problem tying %hash: $!";
 
  # username isn't in the password file? see if the admin wants it added
  unless (exists $users{$user}) {
-	 
+
 	 print "User '$user' not found in db.  Add as a new user? (y/n)\n";
 	 chomp(my $y_or_n = <STDIN>);
 	 set_pw($user, $newpass) if $y_or_n =~ /^[yY]/;
@@ -295,11 +185,11 @@ C<changepass.pl> changes password file entries when the lines are of
 	 print "Done.\n";
 
  }
-	 
+
  sub set_pw { $users{$_[0]} = crypt($_[1], "AA") }
 
 =head2 Using the join option
- 
+
 Here's code that would allow the delimiter to be ':' or '#' but prefers '#':
 
  tie my %hash, 'Tie::File::AsHash', 'filename', split => qr/[:#]/, join => "#" or die $!;
@@ -314,7 +204,7 @@ Say you want to be sure no ':' delimiters exist in the file:
 
 =head1 AUTHOR
 
-Chris Angell <chris@chrisangell.com>
+Chris Angell <chris@chrisangell.com>, Jens Rehsack <rehsack@web.de>
 
 Feel free to email me with suggestions, fixes, etc.
 
@@ -322,14 +212,14 @@ Thanks to Mark Jason Dominus for authoring the superb Tie::File module.
 
 =head1 COPYRIGHT
 
-Copyright (C) 2004, Chris Angell.  All Rights Reserved.
+Copyright (C) 2004, Chris Angell, 2008, Jens Rehsack. All Rights Reserved.
 
 This library is free software; you can redistribute it and/or modify
 it under the same terms as Perl itself, including any version of Perl 5.
 
 =head1 SEE ALSO
 
-perl(1), perltie(1), Tie::File(1)
+perl(1), perltie(1), Tie::File(3pm), Tie::Array::AsHash(3pm)
 
 =cut
 
