@@ -7,7 +7,7 @@ use ExtUtils::MakeMaker;
 
 my %RUN_DEPS = (
                  "Tie::File"          => undef,
-                 "Tie::Array::AsHash" => "0.09",
+                 "Tie::Array::AsHash" => "0.200",
                );
 my %CONFIGURE_DEPS = (
                        'ExtUtils::MakeMaker' => 0,
