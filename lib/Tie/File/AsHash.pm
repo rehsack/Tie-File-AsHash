@@ -58,8 +58,7 @@ sub DESTROY { UNTIE(@_) }
 
 =head1 NAME
 
-Tie::File::AsHash - Like Tie::File but access lines using a hash instead of an
-array
+Tie::File::AsHash - access lines of a file as a hash splitting at separator
 
 =head1 SYNOPSIS
 
@@ -209,7 +208,7 @@ Thanks to Mark Jason Dominus for authoring the superb Tie::File module.
 
 =head1 COPYRIGHT
 
-Copyright (C) 2004, Chris Angell, 2008, Jens Rehsack. All Rights Reserved.
+Copyright (C) 2004, Chris Angell, 2008-2013, Jens Rehsack. All Rights Reserved.
 
 This library is free software; you can redistribute it and/or modify
 it under the same terms as Perl itself, including any version of Perl 5.
