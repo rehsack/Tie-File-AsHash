@@ -10,20 +10,23 @@ use base qw(Tie::Array::AsHash);
 
 $VERSION = "0.200";
 
+my $usage = "usage: tie %hash, 'Tie::File::AsHash', 'filename', "
+  . "split => ':' [, join => '#', 'Tie::File option' => value, ... ]\n";
+
 sub TIEHASH
 {
-    croak( usage() ) if ( scalar(@_) % 2 );
+    croak( $usage ) if ( scalar(@_) % 2 );
 
     my ( $obj, $filename, %opts ) = @_;
 
     # set delimiter and croak if none was supplied
-    my $split = delete( $opts{split} ) or croak( usage() );
+    my $split = delete( $opts{split} ) or croak( $usage );
 
     # set join, an optional argument
     my $join = delete( $opts{join} );
 
     # if split's value is a regex and join isn't specified, croak
-    croak( "Tie::File::AsHash error: no 'join' option specified and 'split' option is a regular expression\n", usage() )
+    croak( "Tie::File::AsHash error: no 'join' option specified and 'split' option is a regular expression\n", $usage )
       if ( ref($split) eq 'Regexp' and not defined($join) );
 
     # the rest of the options can feed right into Tie::File
@@ -52,12 +55,6 @@ sub UNTIE
 }
 
 sub DESTROY { UNTIE(@_) }
-
-sub usage
-{
-    return "usage: tie %hash, 'Tie::File::AsHash', 'filename', "
-      . "split => ':' [, join => '#', 'Tie::File option' => value, ... ]\n";
-}
 
 =head1 NAME
 
