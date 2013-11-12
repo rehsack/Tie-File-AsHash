@@ -8,7 +8,7 @@ use Carp;
 use Tie::File;
 use base qw(Tie::Array::AsHash);
 
-$VERSION = "0.09";
+$VERSION = "0.200";
 
 sub TIEHASH
 {
